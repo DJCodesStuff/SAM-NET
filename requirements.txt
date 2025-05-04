@@ -1,0 +1,33 @@
+# Core
+numpy
+pandas
+scikit-image
+matplotlib
+seaborn
+opencv-python-headless
+Pillow
+tqdm
+python-dotenv
+
+# Kaggle support
+kaggle
+kagglehub
+
+# NIfTI + medical imaging
+nibabel
+nilearn
+# git+https://github.com/miykael/gif_your_nifti
+
+# TensorFlow (GPU-compatible version, update as needed)
+tensorflow==2.15.0
+
+# PyTorch + torchvision (adjust versions per CUDA support)
+torch==2.2.0
+torchvision==0.17.0
+
+# Segment Anything dependencies
+# git+https://github.com/facebookresearch/segment-anything.git
+
+# Optional: visualization
+graphviz
+pydot
