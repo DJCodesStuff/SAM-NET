@@ -1,5 +1,15 @@
+# TensorFlow (GPU-compatible version, update as needed)
+tensorflow==2.4.4
+
+# PyTorch + torchvision (adjust versions per CUDA support)
+torch==1.12.0
+torchvision==0.13
+
+urllib3==1.26.7
+protobuf==3.20.*
+
 # Core
-numpy
+numpy<1.24   #==1.19.2
 pandas
 scikit-image
 matplotlib
@@ -18,12 +28,6 @@ nibabel
 nilearn
 git+https://github.com/miykael/gif_your_nifti
 
-# TensorFlow (GPU-compatible version, update as needed)
-tensorflow==2.15.0
-
-# PyTorch + torchvision (adjust versions per CUDA support)
-torch==2.2.0
-torchvision==0.17.0
 
 # Segment Anything dependencies
 git+https://github.com/facebookresearch/segment-anything.git

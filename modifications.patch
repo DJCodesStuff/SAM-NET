@@ -1,0 +1,65 @@
+--- sam_net_implementation.py	2025-05-03 22:10:58.898343444 -0400
++++ sam_net_implementation.modified.py	2025-05-06 09:31:34.860673559 -0400
+@@ -26,7 +26,7 @@
+ import nilearn.plotting as nlplt
+ # get_ipython().system('pip install git+https://github.com/miykael/gif_your_nifti # nifti to gif')
+ import os
+-os.system("pip install git+https://github.com/miykael/gif_your_nifti")
++#os.system("pip install git+https://github.com/miykael/gif_your_nifti")
+ 
+ import gif_your_nifti.core as gif2nif  # Nifti to GIF converter
+ 
+@@ -423,7 +423,7 @@
+ )
+ 
+ # Save the final model
+-model.save("/kaggle/working/3D_MRI_Brain_Tumor_Segmentation.h5")
++model.save("kaggle/working/3D_MRI_Brain_Tumor_Segmentation.h5")
+ 
+ 
+ # **Visualize the training process**
+@@ -581,7 +581,7 @@
+ IMG_SIZE = 128
+ VOLUME_SLICES = 100
+ VOLUME_START_AT = 22
+-OUTPUT_MASKS_FOLDER = '/kaggle/working/pseudo_labels/'  # Path where you save predicted masks
++OUTPUT_MASKS_FOLDER = 'kaggle/working/pseudo_labels/'  # Path where you save predicted masks
+ model = tf.keras.models.load_model(
+     # '/kaggle/input/model-x80-dcs65/model_x81_dcs65.h5',
+     'data/UNET/model_per_class.h5',
+@@ -612,7 +612,7 @@
+     return volume
+ 
+ # New OUTPUT FOLDER
+-OUTPUT_DATASET_FOLDER = '/kaggle/working/dataset/'  # Not pseudo_labels/
++OUTPUT_DATASET_FOLDER = 'kaggle/working/dataset/'  # Not pseudo_labels/
+ os.makedirs(os.path.join(OUTPUT_DATASET_FOLDER, "images"), exist_ok=True)
+ os.makedirs(os.path.join(OUTPUT_DATASET_FOLDER, "masks"), exist_ok=True)
+ 
+@@ -640,7 +640,7 @@
+ 
+ 
+ # Set path
+-TRAIN_DATASET_PATH = '/data/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
++TRAIN_DATASET_PATH = 'data/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
+ 
+ # Get patient IDs
+ # List only folders (patients), not any unwanted files
+@@ -685,7 +685,7 @@
+ # In[18]:
+ 
+ 
+-get_ipython().system('pip install git+https://github.com/facebookresearch/segment-anything.git')
++#get_ipython().system('pip install git+https://github.com/facebookresearch/segment-anything.git')
+ import os
+ import cv2
+ import torch
+@@ -701,7 +701,7 @@
+ MODEL_TYPE = "vit_b"  # Options: 'vit_b', 'vit_l', 'vit_h'
+ # SAM_CKPT_PATH = "/kaggle/input/segment-anything/pytorch/vit-b/1/model.pth"  # Pretrained SAM checkpoint path
+ SAM_CKPT_PATH = "data/segment-anything-pytorch-vit-b-v1/model.pth"
+-DATASET_PATH = "working/dataset"  # Pseudo-labeled dataset: images/ and masks/
++DATASET_PATH = "kaggle/working/dataset"  # Pseudo-labeled dataset: images/ and masks/
+ BATCH_SIZE = 8
+ NUM_EPOCHS = 10
+ LEARNING_RATE = 1e-4
