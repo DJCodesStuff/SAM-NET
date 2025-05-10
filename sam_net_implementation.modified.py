@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 # Basic utilities
 import os
 import shutil
@@ -61,9 +58,6 @@ VOLUME_START_AT = 22
 IMG_SIZE=128
 
 
-# In[2]:
-
-
 # Dataset paths
 TRAIN_PATH = 'data/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
 VALID_PATH = 'data/BRATS/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/'
@@ -87,6 +81,54 @@ for ax, mod, title in zip(axes, modalities, titles):
 plt.tight_layout()
 plt.show()
 
+def clear_gpu_memory(models_to_clear=None, variables_to_clear=None):
+    """
+    Frees up GPU memory by clearing Keras/TensorFlow sessions,
+    emptying PyTorch CUDA cache, and deleting specified objects.
+    
+    Parameters:
+    - models_to_clear: list of model objects (e.g., Keras or PyTorch models) to delete
+    - variables_to_clear: list of large tensors or arrays to delete
+    """
+
+    print("🔁 Clearing GPU memory...")
+
+    # 1. Clear Keras/TensorFlow session
+    try:
+        K.clear_session()
+        print("✅ Keras session cleared.")
+    except Exception as e:
+        print(f"⚠️ Could not clear Keras session: {e}")
+
+    # 2. Delete models
+    if models_to_clear:
+        for model in models_to_clear:
+            try:
+                del model
+            except Exception as e:
+                print(f"⚠️ Could not delete model: {e}")
+
+    # 3. Delete custom variables (e.g., large arrays)
+    if variables_to_clear:
+        for var in variables_to_clear:
+            try:
+                del var
+            except Exception as e:
+                print(f"⚠️ Could not delete variable: {e}")
+
+    # 4. Python garbage collection
+    gc.collect()
+
+    # 5. PyTorch cleanup
+    try:
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+        print("✅ PyTorch cache cleared.")
+    except Exception as e:
+        print(f"⚠️ PyTorch cleanup failed: {e}")
+
+    print("🧹 GPU memory cleared successfully!")
+
 
 # # Create model || U-Net: Convolutional Networks for Biomedical Image Segmentation
 # he u-net is convolutional network architecture for fast and precise segmentation of images. Up to now it has outperformed the prior best method (a sliding-window convolutional network) on the ISBI challenge for segmentation of neuronal structures in electron microscopic stacks. It has won the Grand Challenge for Computer-Automated Detection of Caries in Bitewing Radiography at ISBI 2015, and it has won the Cell Tracking Challenge at ISBI 2015 on the two most challenging transmitted light microscopy categories (Phase contrast and DIC microscopy) by a large margin
@@ -104,8 +146,6 @@ plt.show()
 # ![dice loss](https://www.jeremyjordan.me/content/images/2018/05/intersection-1.png)
 # 
 # [Implementation, (images above) and explanation can be found here](https://www.jeremyjordan.me/semantic-segmentation/)
-
-# In[3]:
 
 
 # # Dice Coefficient for multi-class (4 classes)
@@ -198,8 +238,6 @@ def specificity(y_true, y_pred):
     return tn / (possible_negatives + K.epsilon())
 
 
-# In[4]:
-
 
 # Source: https://naomi-fridman.medium.com/multi-class-image-segmentation-a5cc671e647a
 
@@ -274,10 +312,6 @@ model.compile(
 
 
 
-
-# In[5]:
-
-
 # # Visualize the model architecture
 # plot_model(
 #     model,
@@ -287,8 +321,6 @@ model.compile(
 #     dpi=70
 # )
 
-
-# In[6]:
 
 
 # List all training/validation directories
@@ -310,8 +342,6 @@ train_ids, test_ids = train_test_split(train_test_ids, test_size=0.15, random_st
 
 
 # **Override Keras sequence DataGenerator class**
-
-# In[7]:
 
 
 class DataGenerator(keras.utils.Sequence):
@@ -378,8 +408,6 @@ test_generator = DataGenerator(test_ids)
 # **Number of data used**
 # for training / testing / validation
 
-# In[8]:
-
 
 # Callback: CSV Logger
 csv_logger = CSVLogger('training.log', separator=',', append=False)
@@ -406,8 +434,6 @@ checkpoint = ModelCheckpoint(
 callbacks = [reduce_lr, csv_logger, checkpoint]
 
 
-# In[9]:
-
 
 # Clear any previous Keras session
 K.clear_session()
@@ -423,12 +449,10 @@ history = model.fit(
 )
 
 # Save the final model
-model.save("kaggle/working/3D_MRI_Brain_Tumor_Segmentation.h5")
+model.save("data/working/3D_MRI_Brain_Tumor_Segmentation.h5")
 
 
 # **Visualize the training process**
-
-# In[10]:
 
 
 import tensorflow as tf
@@ -482,10 +506,6 @@ predicted_mask = predict_segmentation(flair_path, t1ce_path, slice_idx)
 
 # Directly visualize the predicted mask
 # visualize_prediction(predicted_mask)
-
-
-
-# In[11]:
 
 
 import os
@@ -542,9 +562,6 @@ def process_validation_or_test_set(model, patient_ids, base_path):
     return all_predictions
 
 
-# In[12]:
-
-
 # Paths
 # VALIDATION_DATASET_PATH = '/kaggle/input/brats20-dataset-training-validation/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/'
 # TRAIN_DATASET_PATH = '/kaggle/input/brats20-dataset-training-validation/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
@@ -568,8 +585,6 @@ validation_predictions = process_validation_or_test_set(model, validation_patien
 
 # #SAM#
 
-# In[13]:
-
 
 import os
 import numpy as np
@@ -581,7 +596,7 @@ from tqdm import tqdm
 IMG_SIZE = 128
 VOLUME_SLICES = 100
 VOLUME_START_AT = 22
-OUTPUT_MASKS_FOLDER = 'kaggle/working/pseudo_labels/'  # Path where you save predicted masks
+OUTPUT_MASKS_FOLDER = 'data/working/pseudo_labels/'  # Path where you save predicted masks
 model = tf.keras.models.load_model(
     # '/kaggle/input/model-x80-dcs65/model_x81_dcs65.h5',
     'data/UNET/model_per_class.h5',
@@ -612,7 +627,7 @@ def preprocess_volume(flair_path, t1ce_path):
     return volume
 
 # New OUTPUT FOLDER
-OUTPUT_DATASET_FOLDER = 'kaggle/working/dataset/'  # Not pseudo_labels/
+OUTPUT_DATASET_FOLDER = 'data/working/dataset/'  # Not pseudo_labels/
 os.makedirs(os.path.join(OUTPUT_DATASET_FOLDER, "images"), exist_ok=True)
 os.makedirs(os.path.join(OUTPUT_DATASET_FOLDER, "masks"), exist_ok=True)
 
@@ -656,9 +671,6 @@ predict_and_save_pseudolabels(model, train_patient_ids, TRAIN_DATASET_PATH)
 
 
 
-# In[17]:
-
-
 import gc
 import torch
 K.clear_session()
@@ -682,9 +694,6 @@ torch.cuda.ipc_collect()
 print("✅ All models and GPU memory cleaned!")
 
 
-# In[18]:
-
-
 #get_ipython().system('pip install git+https://github.com/facebookresearch/segment-anything.git')
 import os
 import cv2
@@ -701,7 +710,7 @@ from segment_anything import sam_model_registry
 MODEL_TYPE = "vit_b"  # Options: 'vit_b', 'vit_l', 'vit_h'
 # SAM_CKPT_PATH = "/kaggle/input/segment-anything/pytorch/vit-b/1/model.pth"  # Pretrained SAM checkpoint path
 SAM_CKPT_PATH = "data/segment-anything-pytorch-vit-b-v1/model.pth"
-DATASET_PATH = "kaggle/working/dataset"  # Pseudo-labeled dataset: images/ and masks/
+DATASET_PATH = "data/working/dataset"  # Pseudo-labeled dataset: images/ and masks/
 BATCH_SIZE = 8
 NUM_EPOCHS = 10
 LEARNING_RATE = 1e-4
@@ -762,8 +771,6 @@ train_dataset = SegmentationDataset(
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 
-# In[ ]:
-
 
 class SimpleSAMDecoder(nn.Module):
     def __init__(self, encoder, num_classes=1):
@@ -784,15 +791,11 @@ class SimpleSAMDecoder(nn.Module):
         return output
 
 
-# In[ ]:
-
 
 model = SimpleSAMDecoder(sam_encoder).to(DEVICE)
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-
-# In[ ]:
 
 
 def dice_coefficient(preds, targets, threshold=0.5, eps=1e-6):
@@ -852,8 +855,6 @@ for epoch in range(NUM_EPOCHS):
 
     print(f"Epoch [{epoch+1}/{NUM_EPOCHS}] -> Loss: {avg_loss:.4f}, Dice: {avg_dice:.4f}, IoU: {avg_iou:.4f}, Pixel Acc: {avg_acc:.4f}")
 
-
-# In[ ]:
 
 
 
