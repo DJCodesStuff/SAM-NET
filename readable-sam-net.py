@@ -470,6 +470,8 @@ def main(mode="hpc"):
     pseudo_ids = train_ids_local[:1] if mode == "local" else train_ids_local
     predict_and_save_pseudolabels(model, pseudo_ids, TRAIN_PATH)
 
+    torch.cuda.empty_cache()
+
     # Phase 3: Fine-tune SAM
     from segment_anything import sam_model_registry  # Ensure this is installed & accessible
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -499,8 +501,8 @@ def main(mode="hpc"):
 if __name__ == "__main__":
     import sys
     mode = "local"
-    main(mode)
-    # main()
+    # main(mode)
+    main()
 
 
 
