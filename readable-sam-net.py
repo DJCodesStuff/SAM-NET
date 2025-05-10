@@ -56,8 +56,8 @@ np.set_printoptions(precision=3, suppress=True)
 IMG_SIZE = 128
 VOLUME_SLICES = 100
 VOLUME_START_AT = 22
-TRAIN_PATH = 'data/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
-VALID_PATH = 'data/BRATS/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/'
+TRAIN_PATH = 'data/sam-net-hpc/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
+VALID_PATH = 'data/sam-net-hpc/BRATS/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/'
 SEGMENT_CLASSES = {
     0: 'NOT tumor',
     1: 'NECROTIC/CORE',
@@ -220,7 +220,7 @@ class DataGenerator(keras.utils.Sequence):
         return X, Y
 
 # === Training Utilities ===
-def compile_callbacks(log_path='training.log', checkpoint_path='data/UNET/model_per_class.weights.h5'):
+def compile_callbacks(log_path='training.log', checkpoint_path='data/sam-net-hpc/UNET/model_per_class.weights.h5'):
     csv_logger = CSVLogger(log_path, separator=',', append=False)
 
     reduce_lr = ReduceLROnPlateau(
@@ -334,7 +334,7 @@ def get_sam_dataloader(images_dir, masks_dir, batch_size=8):
 
 
 class SimpleSAMDecoder(nn.Module):
-    def __init__(self, encoder, num_classes=1):
+    def __init__(self, encoder, num_classes=1, output_size=(128, 128)):
         super(SimpleSAMDecoder, self).__init__()
         self.encoder = encoder
         self.decoder = nn.Sequential(
@@ -344,11 +344,15 @@ class SimpleSAMDecoder(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(64, num_classes, 1)
         )
+        self.output_size = output_size
 
     def forward(self, x):
         with torch.no_grad():
             features = self.encoder(x)
-        return self.decoder(features)
+        x = self.decoder(features)
+        x = nn.functional.interpolate(x, size=self.output_size, mode='bilinear', align_corners=False)
+        return x
+
 
 
 def train_sam_model(model, dataloader, num_epochs, device, lr=1e-4):
@@ -399,51 +403,58 @@ def train_sam_model(model, dataloader, num_epochs, device, lr=1e-4):
 
 # === Main Function ===
 def main(mode="hpc"):
-    from segment_anything import sam_model_registry
-
-    # === Phase 1: Train U-Net ===
-    # This phase handles the training of a U-Net segmentation model using the BRATS dataset.
-    from unet_model import build_unet_model
-    from data_utils import DataGenerator
-    from training import compile_callbacks, train_model, save_model
-
-    # Prepare data generators for training and validation
-    from config import TRAIN_PATH, VALID_PATH, train_ids, val_ids
+    print("🧠 Brain Tumor Segmentation Pipeline Starting...")
 
     if mode == "local":
-        # Use minimal data for testing
         print("🔬 Running in LOCAL mode: Using subset of data for quick verification.")
-        train_ids_local = train_ids[:2]
-        val_ids_local = val_ids[:1]
+        train_ids_local = os.listdir(TRAIN_PATH)[:2]
+        val_ids_local = os.listdir(TRAIN_PATH)[-1:]
         epochs = 1
         steps_per_epoch = len(train_ids_local)
     else:
         print("🚀 Running in HPC mode: Using full dataset.")
-        train_ids_local = train_ids
-        val_ids_local = val_ids
+        train_ids_local = os.listdir(TRAIN_PATH)
+        val_ids_local = os.listdir(TRAIN_PATH)[:5]
         epochs = 35
         steps_per_epoch = len(train_ids_local)
 
+    # Phase 1: Train U-Net
     train_gen = DataGenerator(train_ids_local, TRAIN_PATH)
     val_gen = DataGenerator(val_ids_local, TRAIN_PATH)
 
-    # Initialize and train the U-Net model
     model = build_unet_model()
     callbacks = compile_callbacks()
     history = train_model(model, train_gen, val_gen, epochs=epochs, steps_per_epoch=steps_per_epoch, callbacks=callbacks)
     save_model(model)
 
-    # === Phase 2: Generate Pseudo Labels ===
-    # Use the trained U-Net to generate segmentation masks for unlabeled data.
-    from inference import predict_and_save_pseudolabels
+    # Phase 2: Generate Pseudo Labels
+    def predict_and_save_pseudolabels(model, patient_ids, base_path):
+        save_img_dir = "data/working/dataset/images"
+        save_mask_dir = "data/working/dataset/masks"
+        os.makedirs(save_img_dir, exist_ok=True)
+        os.makedirs(save_mask_dir, exist_ok=True)
+
+        for pid in tqdm(patient_ids, desc="Generating Pseudo Labels"):
+            flair_path = os.path.join(base_path, pid, f"{pid}_flair.nii")
+            t1ce_path = os.path.join(base_path, pid, f"{pid}_t1ce.nii")
+            volume = preprocess_volume(flair_path, t1ce_path)
+            for i in range(VOLUME_SLICES):
+                X_slice = np.expand_dims(volume[i], axis=0)
+                pred = model.predict(X_slice, verbose=0)
+                mask = np.argmax(pred[0], axis=-1).astype(np.uint8)
+                img = (volume[i][:, :, 0] * 255).astype(np.uint8)
+
+                Image.fromarray(img).save(os.path.join(save_img_dir, f"{pid}_{i:03d}.png"))
+                Image.fromarray(mask * 85).save(os.path.join(save_mask_dir, f"{pid}_{i:03d}.png"))  # Class to grayscale
+
     pseudo_ids = train_ids_local[:1] if mode == "local" else train_ids_local
     predict_and_save_pseudolabels(model, pseudo_ids, TRAIN_PATH)
 
-    # === Phase 3: Fine-tune SAM on Pseudo Labels ===
-    # Fine-tunes the SAM (Segment Anything Model) using the generated pseudo labels.
+    # Phase 3: Fine-tune SAM
+    from segment_anything import sam_model_registry  # Ensure this is installed & accessible
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     MODEL_TYPE = "vit_b"
-    SAM_CKPT_PATH = "data/segment-anything-pytorch-vit-b-v1/model.pth"
+    SAM_CKPT_PATH = "data/sam-net-hpc/segment-anything-pytorch-vit-b-v1/model.pth"
     DATASET_PATH = "data/working/dataset"
 
     sam = sam_model_registry[MODEL_TYPE](checkpoint=SAM_CKPT_PATH)
@@ -453,7 +464,6 @@ def main(mode="hpc"):
     for param in sam_encoder.parameters():
         param.requires_grad = False
 
-    from sam_train import get_sam_dataloader, SimpleSAMDecoder, train_sam_model
     sam_loader = get_sam_dataloader(
         images_dir=os.path.join(DATASET_PATH, "images"),
         masks_dir=os.path.join(DATASET_PATH, "masks"),
@@ -462,6 +472,7 @@ def main(mode="hpc"):
 
     sam_model = SimpleSAMDecoder(sam_encoder).to(DEVICE)
     train_sam_model(sam_model, sam_loader, num_epochs=1 if mode == "local" else 10, device=DEVICE)
+
 
 
 if __name__ == "__main__":
