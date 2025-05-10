@@ -473,6 +473,7 @@ def main(mode="hpc"):
     # Phase 3: Fine-tune SAM
     from segment_anything import sam_model_registry  # Ensure this is installed & accessible
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {DEVICE}")
     MODEL_TYPE = "vit_b"
     SAM_CKPT_PATH = "data/segment-anything-pytorch-vit-b-v1/model.pth"
     DATASET_PATH = "data/working/dataset"
