@@ -1,0 +1,38 @@
+# ✅ TensorFlow (CUDA 11.0 compatible)
+tensorflow==2.4.4
+
+# ✅ PyTorch + torchvision (CUDA 11.0 compatible)
+torch==1.7.1
+torchvision==0.8.2
+torchaudio==0.7.2
+
+# 🧩 Compatibility
+urllib3==1.26.7
+protobuf==3.20.*
+
+# 📊 Core libraries
+numpy<1.24         # ensure compatibility with TF 2.4 and PyTorch
+pandas
+scikit-image
+matplotlib
+seaborn
+opencv-python-headless==4.5.5.64
+Pillow
+tqdm
+python-dotenv
+
+# 📦 Kaggle support
+kaggle
+kagglehub
+
+# 🧠 NIfTI + medical imaging
+nibabel
+nilearn
+git+https://github.com/miykael/gif_your_nifti
+
+# 🎯 Meta AI SAM model
+git+https://github.com/facebookresearch/segment-anything.git
+
+# 🧰 Optional visualization
+graphviz
+pydot
