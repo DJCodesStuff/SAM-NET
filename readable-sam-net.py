@@ -56,8 +56,8 @@ np.set_printoptions(precision=3, suppress=True)
 IMG_SIZE = 128
 VOLUME_SLICES = 100
 VOLUME_START_AT = 22
-TRAIN_PATH = 'data/sam-net-hpc/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
-VALID_PATH = 'data/sam-net-hpc/BRATS/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/'
+TRAIN_PATH = 'data/BRATS/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/'
+VALID_PATH = 'data/BRATS/BraTS2020_ValidationData/MICCAI_BraTS2020_ValidationData/'
 SEGMENT_CLASSES = {
     0: 'NOT tumor',
     1: 'NECROTIC/CORE',
@@ -454,7 +454,7 @@ def main(mode="hpc"):
     from segment_anything import sam_model_registry  # Ensure this is installed & accessible
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     MODEL_TYPE = "vit_b"
-    SAM_CKPT_PATH = "data/sam-net-hpc/segment-anything-pytorch-vit-b-v1/model.pth"
+    SAM_CKPT_PATH = "data/segment-anything-pytorch-vit-b-v1/model.pth"
     DATASET_PATH = "data/working/dataset"
 
     sam = sam_model_registry[MODEL_TYPE](checkpoint=SAM_CKPT_PATH)
