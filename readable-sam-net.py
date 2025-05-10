@@ -173,6 +173,7 @@ def build_unet_model(img_size=IMG_SIZE, channels=2, num_classes=4, dropout_rate=
 class DataGenerator(keras.utils.Sequence):
     """Generates data for Keras model training."""
     def __init__(self, list_IDs, data_path, dim=(IMG_SIZE, IMG_SIZE), batch_size=1, n_channels=2, shuffle=True):
+        # super().__init__(**kwargs)
         self.dim = dim
         self.batch_size = batch_size
         self.list_IDs = list_IDs
@@ -220,7 +221,7 @@ class DataGenerator(keras.utils.Sequence):
         return X, Y
 
 # === Training Utilities ===
-def compile_callbacks(log_path='training.log', checkpoint_path='data/sam-net-hpc/UNET/model_per_class.weights.h5'):
+def compile_callbacks(log_path='training.log', checkpoint_path='data/UNET/model_per_class.weights.h5'):
     csv_logger = CSVLogger(log_path, separator=',', append=False)
 
     reduce_lr = ReduceLROnPlateau(
@@ -405,18 +406,37 @@ def train_sam_model(model, dataloader, num_epochs, device, lr=1e-4):
 def main(mode="hpc"):
     print("🧠 Brain Tumor Segmentation Pipeline Starting...")
 
+    # if mode == "local":
+    #     print("🔬 Running in LOCAL mode: Using subset of data for quick verification.")
+    #     train_ids_local = os.listdir(TRAIN_PATH)[:2]
+    #     val_ids_local = os.listdir(TRAIN_PATH)[-1:]
+    #     epochs = 1
+    #     steps_per_epoch = len(train_ids_local)
+    # else:
+    #     print("🚀 Running in HPC mode: Using full dataset.")
+    #     train_ids_local = os.listdir(TRAIN_PATH)
+    #     val_ids_local = os.listdir(TRAIN_PATH)[:5]
+    #     epochs = 35
+    #     steps_per_epoch = len(train_ids_local)
+    def is_valid_patient_dir(path, name_prefix="BraTS20"):
+        full_path = os.path.join(TRAIN_PATH, path)
+        return os.path.isdir(full_path) and path.startswith(name_prefix)
+
+    all_patient_dirs = [d for d in os.listdir(TRAIN_PATH) if is_valid_patient_dir(d)]
+
     if mode == "local":
         print("🔬 Running in LOCAL mode: Using subset of data for quick verification.")
-        train_ids_local = os.listdir(TRAIN_PATH)[:2]
-        val_ids_local = os.listdir(TRAIN_PATH)[-1:]
+        train_ids_local = all_patient_dirs[:2]
+        val_ids_local = all_patient_dirs[-1:]
         epochs = 1
         steps_per_epoch = len(train_ids_local)
     else:
         print("🚀 Running in HPC mode: Using full dataset.")
-        train_ids_local = os.listdir(TRAIN_PATH)
-        val_ids_local = os.listdir(TRAIN_PATH)[:5]
+        train_ids_local = all_patient_dirs
+        val_ids_local = all_patient_dirs[:5]
         epochs = 35
         steps_per_epoch = len(train_ids_local)
+
 
     # Phase 1: Train U-Net
     train_gen = DataGenerator(train_ids_local, TRAIN_PATH)
@@ -478,8 +498,8 @@ def main(mode="hpc"):
 if __name__ == "__main__":
     import sys
     mode = "local"
-    # mode = "hpc"
     main(mode)
+    # main()
 
 
 
